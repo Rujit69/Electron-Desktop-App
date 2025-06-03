@@ -1,0 +1,31 @@
+name: Build Electron App
+
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [created]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - run: npm install
+    - run: npm run dist
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.os }}-build
+        path: dist/
