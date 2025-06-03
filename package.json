@@ -5,7 +5,7 @@
   "homepage": ".",
   "description": "Cross-platform productivity app",
   "author": "Your Name",
-  "main": "src/electron/electron.js",
+  "main": "electron public/electron.js",
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
@@ -27,7 +27,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "electron": "electron src/electron/electron.js",
+    "electron": "electron public/electron.js",
     "build": "react-scripts build",
     "pack": "electron-builder --dir",
     "dist": "electron-builder"
