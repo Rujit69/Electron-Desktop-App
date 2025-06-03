@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import "./App.css";
 
 import playImg from "./assets/play.png";
@@ -13,6 +13,15 @@ import breakGif from "./assets/break.gif";
 import meowSound from "./assets/meow.mp3";
 import closeBtn from "./assets/close.png";
 
+// Declare electron API type
+declare global {
+  interface Window {
+    electronAPI?: {
+      closeApp: () => void;
+    };
+  }
+}
+
 function App() {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isRunning, setIsRunning] = useState(false);
@@ -21,26 +30,75 @@ function App() {
   const [encouragement, setEncouragement] = useState("");
   const [breakButtonImage, setBreakButtonImage] = useState(breakBtn);
   const [gifImage, setGifImage] = useState(idleGif);
-  const meowAudio = new Audio(meowSound);
   const [workButtonImage, setWorkButtonImage] = useState(workBtn);
-  const cheerMessages = [
-    "You Can Do It!",
-    "I believe in you!",
-    "Send Nudes!",
-    "You're amazing!",
-    "Keep going!",
-    "Stay focused!",
-  ];
 
-  const breakMessages = [
-    "Stay hydrated!",
-    "Snacks, maybe?",
-    "Text me!",
-    "Tired already huh ?",
-    "I love you <3",
-    "Spread your legs!",
-  ];
+  // Memoize audio and messages to prevent recreation
+  const meowAudio = useMemo(() => new Audio(meowSound), []);
 
+  const cheerMessages = useMemo(
+    () => [
+      "You Can Do It!",
+      "I believe in you!",
+      "Send Nudes!",
+      "You're amazing!",
+      "Keep going!",
+      "Stay focused!",
+    ],
+    []
+  );
+
+  const breakMessages = useMemo(
+    () => [
+      "Stay hydrated!",
+      "Snacks, maybe?",
+      "Text me!",
+      "Tired already huh ?",
+      "I love you <3",
+      "Spread your legs!",
+    ],
+    []
+  );
+
+  const formatTime = useCallback((seconds: number): string => {
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+
+    const s = (seconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  }, []);
+
+  const switchMode = useCallback((breakMode: boolean) => {
+    setIsBreak(breakMode);
+    setIsRunning(false);
+    setBreakButtonImage(breakMode ? breakBtnClicked : breakBtn);
+    setWorkButtonImage(breakMode ? workBtn : workBtnClicked);
+    setTimeLeft(breakMode ? 5 * 60 : 25 * 60);
+    setGifImage(idleGif);
+  }, []);
+
+  const handleClick = useCallback(() => {
+    if (!isRunning) {
+      setIsRunning(true);
+      setGifImage(isBreak ? breakGif : workGif);
+      setImage(resetImg);
+    } else {
+      setIsRunning(false);
+      setTimeLeft(isBreak ? 5 * 60 : 25 * 60);
+      setGifImage(idleGif);
+      setImage(playImg);
+    }
+  }, [isRunning, isBreak]);
+
+  const handleCloseClick = useCallback(() => {
+    if (window.electronAPI?.closeApp) {
+      window.electronAPI.closeApp();
+    } else {
+      console.warn("Electron API not available");
+    }
+  }, []);
+
+  // Message rotation effect
   useEffect(() => {
     let messageInterval: NodeJS.Timeout;
 
@@ -58,8 +116,9 @@ function App() {
     }
 
     return () => clearInterval(messageInterval);
-  }, [isRunning, isBreak]);
+  }, [isRunning, isBreak, breakMessages, cheerMessages]);
 
+  // Timer countdown effect
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isRunning && timeLeft > 0) {
@@ -71,65 +130,28 @@ function App() {
     return () => clearInterval(timer);
   }, [isRunning, timeLeft]);
 
-  // meow sound
+  // Timer completion effect
   useEffect(() => {
     if (timeLeft === 0 && isRunning) {
       meowAudio.play().catch((err) => {
         console.error("Audio play failed:", err);
       });
-      setIsRunning(false); // Optional: auto-stop the timer
-      setImage(playImg); // Reset to play button
-      setGifImage(idleGif); // Reset to idle gif
+      setIsRunning(false);
+      setImage(playImg);
+      setGifImage(idleGif);
       setTimeLeft(isBreak ? 5 * 60 : 25 * 60);
     }
-  }, [timeLeft]);
+  }, [timeLeft, isRunning, isBreak, meowAudio]);
 
-  const formatTime = (seconds: number): string => {
-    const m = Math.floor(seconds / 60)
-      .toString()
-      .padStart(2, "0");
-
-    const s = (seconds % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
-  };
-
-  const switchMode = (breakMode: boolean) => {
-    setIsBreak(breakMode);
-    setIsRunning(false);
-    setBreakButtonImage(breakMode ? breakBtnClicked : breakBtn);
-    setWorkButtonImage(breakMode ? workBtn : workBtnClicked);
-    setTimeLeft(breakMode ? 5 * 60 : 25 * 60);
-    setGifImage(idleGif);
-  };
-
-  // set initial switch mode to false
+  // Initial mode setup
   useEffect(() => {
     switchMode(false);
-  }, []);
+  }, [switchMode]);
 
-  const handleClick = () => {
-    if (!isRunning) {
-      setIsRunning(true);
-      setGifImage(isBreak ? breakGif : workGif);
-      setImage(resetImg);
-    } else {
-      setIsRunning(false);
-      setTimeLeft(isBreak ? 5 * 60 : 25 * 60);
-      setGifImage(idleGif);
-      setImage(playImg);
-    }
-  };
   const containerClass = `home-container ${
     isRunning ? "background-green" : ""
   }`;
 
-  const handleCloseClick = () => {
-    if (window.electronAPI?.closeApp) {
-      window.electronAPI.closeApp();
-    } else {
-      console.warn("Electron API not available");
-    }
-  };
   return (
     <div className={containerClass} style={{ position: "relative" }}>
       <div>
