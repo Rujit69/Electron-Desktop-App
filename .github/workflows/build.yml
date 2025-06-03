@@ -13,6 +13,9 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest]
     
+    permissions:
+      contents: write
+    
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v3
@@ -31,6 +34,8 @@ jobs:
         
       - name: 📱 Build Electron app
         run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
       - name: 📤 Upload build artifacts
         uses: actions/upload-artifact@v4
