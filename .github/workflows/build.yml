@@ -8,24 +8,29 @@ on:
 
 jobs:
   build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        os: [windows-latest, macos-latest]
 
     steps:
-    - uses: actions/checkout@v3
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
+      - name: ⚙️ Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
 
-    - run: npm install
-    - run: npm run dist
+      - name: 📦 Install dependencies
+        run: npm install
 
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ matrix.os }}-build
-        path: dist/
+      - name: 🏗️ Build Electron app
+        run: npm run dist
+
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-build-${{ matrix.os }}
+          path: dist/
